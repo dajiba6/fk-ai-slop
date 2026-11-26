@@ -1,0 +1,129 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "@fontsource/syne/latin-800.css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans CJK SC", "PingFang SC", "Microsoft YaHei", Helvetica, Arial, sans-serif;
+  --font-serif: "Spectral", "Source Serif 4", "Noto Serif CJK SC", "Source Han Serif SC", "Songti SC", Georgia, serif;
+  --font-display: "Syne", var(--font-sans);
+  --color-accent-brand: var(--brand);
+  --color-card-soft: var(--card-soft);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+}
+
+:root {
+  --radius: 0.625rem;
+  --brand: #3c7eeb;
+  --card-soft: #f5f5f5;
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.205 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.205 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.205 0 0);
+  --primary: oklch(0.205 0 0);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.97 0 0);
+  --secondary-foreground: oklch(0.205 0 0);
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.52 0 0);
+  --accent: oklch(0.97 0 0);
+  --accent-foreground: oklch(0.205 0 0);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.922 0 0);
+  --input: oklch(0.922 0 0);
+  --ring: oklch(0.708 0 0);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+  }
+}
+
+@layer components {
+/* Long-form reading: transcripts, articles, summaries. */
+.prose-reading {
+  font-family: var(--font-serif);
+  font-size: 19px;
+  line-height: 1.75;
+  color: oklch(0.2 0 0);
+}
+.prose-reading p { margin: 0 0 1.15em; }
+.prose-reading h1, .prose-reading h2, .prose-reading h3 { line-height: 1.3; margin: 1.6em 0 0.6em; font-weight: 700; }
+.prose-reading h2 { font-size: 1.25em; }
+.prose-reading h3 { font-size: 1.1em; }
+.prose-reading a { text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 3px; }
+.prose-reading blockquote { margin: 1.2em 0; padding-left: 20px; border-left: 3px solid currentColor; }
+.prose-reading pre { overflow-x: auto; background: var(--card-soft); padding: 14px; border-radius: 6px; font-size: 14px; line-height: 1.5; }
+.prose-reading code { font-size: 0.85em; }
+.prose-reading ul { list-style: disc; padding-left: 1.3em; margin: 0 0 1.15em; }
+.prose-reading ol { list-style: decimal; padding-left: 1.3em; margin: 0 0 1.15em; }
+.prose-reading li { margin: 0.35em 0; }
+.prose-reading img { border-radius: 6px; }
+.prose-reading table { border-collapse: collapse; font-family: var(--font-sans); font-size: 14px; }
+.prose-reading td, .prose-reading th { border: 1px solid var(--border); padding: 6px 10px; }
+  @media (max-width: 640px) {
+    .prose-reading { font-size: 18px; }
+  }
+}
+
+/* Flowing light across a button while AI work is running. */
+.ai-shimmer {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  border-color: color-mix(in oklch, var(--brand) 45%, var(--border));
+  color: var(--brand);
+}
+.ai-shimmer::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(
+    105deg,
+    transparent 20%,
+    color-mix(in oklch, var(--brand) 18%, transparent) 38%,
+    color-mix(in oklch, #b06bff 28%, transparent) 50%,
+    color-mix(in oklch, var(--brand) 18%, transparent) 62%,
+    transparent 80%
+  );
+  transform: translateX(-100%);
+  animation: ai-shimmer 1.6s ease-in-out infinite;
+}
+@keyframes ai-shimmer {
+  to { transform: translateX(100%); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ai-shimmer::after { animation: none; transform: none; opacity: 0.6; }
+}
+
+.scrollbar-none { scrollbar-width: none; }
+.scrollbar-none::-webkit-scrollbar { display: none; }

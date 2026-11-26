@@ -1,0 +1,16 @@
+# systemd user unit. Copy to ~/.config/systemd/user/, point the paths at your checkout, then:
+#   systemctl --user daemon-reload && systemctl --user enable --now fk-ai-slop.service
+[Unit]
+Description=fk ai slop media site
+After=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=%h/fk-ai-slop
+ExecStart=%h/fk-ai-slop/.venv/bin/fk serve
+Environment=PYTHONUNBUFFERED=1
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target

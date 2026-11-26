@@ -1,0 +1,8 @@
+# Started by fk-ai-slop-poll.timer; point the paths at your checkout.
+[Unit]
+Description=Queue a poll of every fk ai slop source
+
+[Service]
+Type=oneshot
+WorkingDirectory=%h/fk-ai-slop
+ExecStart=%h/fk-ai-slop/.venv/bin/fk poll

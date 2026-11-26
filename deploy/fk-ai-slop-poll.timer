@@ -1,0 +1,10 @@
+[Unit]
+Description=Poll fk ai slop sources every 6 hours
+
+[Timer]
+OnCalendar=*-*-* 00/6:00:00
+Persistent=true
+RandomizedDelaySec=10min
+
+[Install]
+WantedBy=timers.target

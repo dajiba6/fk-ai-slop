@@ -1,0 +1,13 @@
+services:
+  xiaohongshu-mcp:
+    image: xpzouying/xiaohongshu-mcp:latest
+    container_name: xiaohongshu-mcp
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:18060:18060"
+    volumes:
+      - ~/.local/share/xiaohongshu-mcp/data:/app/data
+    environment:
+      - COOKIES_PATH=/app/data/cookies.json
+      - HOME=/app/data/home
+      - XDG_CONFIG_HOME=/app/data/config
