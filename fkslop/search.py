@@ -99,10 +99,11 @@ def search(query=None, author=None, source=None, platform=None, title=None, date
             log.warning("embedding service unavailable, falling back to keyword search")
     if rows is None:
         rows = _keyword(conn, query, clauses, params, top_k * 8)
-    hits, per = [], {}
+    hits, per, seen = [], {}, set()
     for row, score in rows:
-        if per.get(row["id"], 0) >= per_item:
+        if per.get(row["id"], 0) >= per_item or (row["id"], row["seq"]) in seen:
             continue
+        seen.add((row["id"], row["seq"]))
         per[row["id"]] = per.get(row["id"], 0) + 1
         hits.append(_hit(row, score))
         if len(hits) >= top_k:
