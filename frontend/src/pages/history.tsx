@@ -31,7 +31,6 @@ export function HistoryPage() {
   return (
     <main className="mx-auto max-w-[728px] px-5 pt-8 pb-24">
       <h1 className="font-serif text-3xl font-bold">历史记录</h1>
-      <p className="mt-2 text-sm text-muted-foreground">最近看过的 1000 条。再打开一次会回到最上面。</p>
       <form
         className="mt-6 flex gap-2"
         onSubmit={(event) => {

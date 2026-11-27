@@ -65,6 +65,33 @@
   html {
     scrollbar-gutter: stable;
   }
+  /* The `scrolling` class is toggled in main.tsx while the page scrolls or the pointer is over the bar. */
+  html::-webkit-scrollbar {
+    width: 8px;
+    background: transparent;
+  }
+  html::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  html::-webkit-scrollbar-thumb {
+    background: transparent;
+    border-radius: 999px;
+  }
+  html.scrolling::-webkit-scrollbar-thumb {
+    background: oklch(0 0 0 / 0.28);
+  }
+  html::-webkit-scrollbar-button {
+    display: none;
+  }
+  @supports not selector(::-webkit-scrollbar) {
+    html {
+      scrollbar-width: thin;
+      scrollbar-color: transparent transparent;
+    }
+    html.scrolling {
+      scrollbar-color: oklch(0 0 0 / 0.28) transparent;
+    }
+  }
   /* The gutter already reserves the scrollbar; dialog scroll locks must not add it again. */
   html body[data-scroll-locked] {
     margin-right: 0 !important;
