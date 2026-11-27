@@ -166,6 +166,47 @@ def source_detail(source_id: str):
     return {**public_source(source), "total": retrieval.count_items(source=source_id)}
 
 
+def _history_hit(row, source_name, needle, text_ids):
+    if row["id"] in text_ids:
+        return True
+    blob = " ".join(part for part in (row.get("title"), row.get("author"), row.get("description"), source_name) if part)
+    return needle.casefold() in blob.casefold()
+
+
+@app.get("/api/history")
+def viewing_history(request: Request, q: str = "", page_no: int = 1):
+    require_admin(request)
+    entries = store.history()
+    needle = q.strip()
+    rows = retrieval.items_by_ids([entry["id"] for entry in entries])
+    sources = {source["id"]: source for source in store.load_sources()}
+    text_ids = retrieval.item_ids_with_text(list(rows), needle) if needle else set()
+    matched = []
+    for entry in entries:
+        row = rows.get(entry["id"])
+        if row is None:
+            continue
+        source_name = (sources.get(row["source_id"]) or {}).get("name") or ""
+        if needle and not _history_hit(row, source_name, needle, text_ids):
+            continue
+        matched.append((row, entry["at"]))
+    start = max(page_no - 1, 0) * PAGE_SIZE
+    window = matched[start:start + PAGE_SIZE + 1]
+    items = feed_items([row for row, _at in window[:PAGE_SIZE]], request)
+    for item, (_row, viewed_at) in zip(items, window[:PAGE_SIZE]):
+        item["viewed_at"] = viewed_at
+    return {"items": items, "has_more": len(window) > PAGE_SIZE, "total": len(matched)}
+
+
+@app.post("/api/history/{iid}")
+def record_view(request: Request, iid: str):
+    require_admin(request)
+    if store.read_item(iid)[0] is None:
+        raise HTTPException(404, "没有这个条目")
+    store.remember_view(iid)
+    return {"ok": True}
+
+
 @app.get("/api/archive")
 def archive(request: Request, source: str = "", platform: str = "", month: str = "", page_no: int = 1):
     rows = retrieval.list_items(source=source or None, platform=platform or None, date_from=month or None,

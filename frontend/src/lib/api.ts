@@ -20,6 +20,10 @@ export type FeedItem = {
 
 export type FeedPage = { items: FeedItem[]; has_more: boolean }
 
+export type HistoryItem = FeedItem & { viewed_at: string }
+
+export type HistoryPage = { items: HistoryItem[]; has_more: boolean; total: number }
+
 export type Source = {
   id: string
   platform: string

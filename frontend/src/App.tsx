@@ -5,6 +5,7 @@ import { Layout } from "@/components/layout"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { AdminPage } from "@/pages/admin"
 import { ArchivePage } from "@/pages/archive"
+import { HistoryPage } from "@/pages/history"
 import { HomePage } from "@/pages/home"
 import { PostPage } from "@/pages/post"
 import { PublicationPage } from "@/pages/publication"
@@ -22,6 +23,7 @@ const router = createBrowserRouter([
       { path: "/p/:id", element: <PostPage /> },
       { path: "/s/:id", element: <PublicationPage /> },
       { path: "/archive", element: <ArchivePage /> },
+      { path: "/history", element: <HistoryPage /> },
       { path: "/search", element: <SearchPage /> },
       { path: "/admin", element: <AdminPage /> },
       { path: "*", element: <p className="py-24 text-center text-muted-foreground">页面不存在。</p> },

@@ -119,14 +119,22 @@ export function PostPage() {
     onError: (error) => toast.error(error.message),
   })
 
-  // Opening a post counts as read.
+  // Opening a post counts as read, and joins the private viewing history.
   const autoRead = useRef<string | null>(null)
+  const noted = useRef<string | null>(null)
   const loaded = detail.data
   useEffect(() => {
     if (!admin || !loaded || autoRead.current === id) return
     autoRead.current = id
     if (!loaded.read) flag.mutate({ name: "read", on: true })
   }, [admin, flag, id, loaded])
+  useEffect(() => {
+    if (!admin || !loaded || noted.current === id) return
+    noted.current = id
+    api.post(`/api/history/${id}`).then(() => {
+      client.invalidateQueries({ queryKey: ["/api/history"] })
+    }).catch(() => {})
+  }, [admin, client, id, loaded])
 
   const awaitingSummary = useRef<string | null>(null)
   const summaryReady = loaded?.summary != null

@@ -192,6 +192,27 @@ def list_items(author=None, source=None, platform=None, title=None, date_from=No
     return [dict(row) for row in rows]
 
 
+def items_by_ids(ids):
+    if not ids:
+        return {}
+    marks = ",".join("?" * len(ids))
+    rows = db.connect().execute(f"SELECT * FROM items WHERE id IN ({marks})", list(ids)).fetchall()
+    return {row["id"]: dict(row) for row in rows}
+
+
+def item_ids_with_text(ids, query):
+    """Items in ids whose transcript or article text contains query."""
+    if not ids or not query:
+        return set()
+    needle = query.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+    marks = ",".join("?" * len(ids))
+    rows = db.connect().execute(
+        f"SELECT DISTINCT item_id FROM chunks WHERE item_id IN ({marks}) AND text LIKE ? ESCAPE '\\'",
+        [*ids, f"%{needle}%"],
+    ).fetchall()
+    return {row[0] for row in rows}
+
+
 def count_items(**filters):
     conn = db.connect()
     _with_source_names(conn)

@@ -36,6 +36,20 @@ export function niceDate(value: string | null | undefined, approx?: boolean) {
   return `${y} 年 ${m} 月 ${d} 日`
 }
 
+export function viewedAt(value: string | null | undefined) {
+  if (!value) return ""
+  const moment = new Date(value)
+  if (Number.isNaN(moment.getTime())) return ""
+  const time = `${moment.getHours()}:${String(moment.getMinutes()).padStart(2, "0")}`
+  const day = (date: Date) => `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`
+  const now = new Date()
+  if (day(moment) === day(now)) return `今天 ${time}`
+  const yesterday = new Date(now)
+  yesterday.setDate(now.getDate() - 1)
+  if (day(moment) === day(yesterday)) return `昨天 ${time}`
+  return `${niceDate(value)} ${time}`
+}
+
 export function hue(key: string) {
   let hash = 0
   for (const char of key) hash = (hash * 31 + char.charCodeAt(0)) >>> 0

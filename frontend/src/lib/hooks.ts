@@ -2,17 +2,22 @@ import { useInfiniteQuery, useQuery } from "@tanstack/react-query"
 
 import { api, query, type FeedPage, type Source, type SummaryTask } from "@/lib/api"
 
-export function usePagedFeed(path: string, params: Record<string, string | undefined>) {
+export function usePagedFeed<T extends FeedPage = FeedPage>(
+  path: string,
+  params: Record<string, string | undefined>,
+  enabled = true,
+) {
   const result = useInfiniteQuery({
     queryKey: [path, params],
-    queryFn: ({ pageParam }) => api.get<FeedPage>(`${path}${query({ ...params, page_no: pageParam })}`),
+    queryFn: ({ pageParam }) => api.get<T>(`${path}${query({ ...params, page_no: pageParam })}`),
     initialPageParam: 1,
     getNextPageParam: (last, pages) => (last.has_more ? pages.length + 1 : undefined),
+    enabled,
   })
   return {
     ...result,
-    items: result.data?.pages.flatMap((page) => page.items) ?? [],
-    first: result.data?.pages[0],
+    items: (result.data?.pages.flatMap((page) => page.items) ?? []) as T["items"],
+    first: result.data?.pages[0] as T | undefined,
   }
 }
 

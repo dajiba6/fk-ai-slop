@@ -165,6 +165,32 @@ def set_flag(iid, flag, on):
         return state
 
 
+HISTORY_LIMIT = 1000
+
+
+def history():
+    """Newest view first, capped. Each entry is {"id", "at"}."""
+    with _lock:
+        state = load_state()
+        entries = []
+        for entry in state.get("history") or []:
+            if isinstance(entry, dict) and entry.get("id"):
+                entries.append({"id": entry["id"], "at": entry.get("at") or ""})
+        return entries[:HISTORY_LIMIT]
+
+
+def remember_view(iid):
+    """Move this item to the front of the viewing history."""
+    with _lock:
+        state = load_state()
+        entries = [entry for entry in state.get("history") or []
+                   if isinstance(entry, dict) and entry.get("id") and entry["id"] != iid]
+        entries.insert(0, {"id": iid, "at": now_iso()})
+        state["history"] = entries[:HISTORY_LIMIT]
+        _atomic_write(config.STATE_FILE, json.dumps(state, ensure_ascii=False))
+        return state["history"]
+
+
 def watch_summary(iid, on):
     """Items in the summary dock, oldest request first."""
     with _lock:
