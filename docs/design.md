@@ -64,7 +64,7 @@ fkslop/
 - 小红书：只收链接（标题、封面、简介、发布时间），不自动下载视频、不自动做逐字稿。详情页可手动“提取逐字稿”（视频笔记：yt-dlp 直连下载音频后本地语音识别）和“生成总结”（用逐字稿，没有就用简介）。链接用 App 认的 `/discovery/item/<id>?xsec_token=…&xsec_source=app_share`（`/explore/` 只会打开 App 首页），管理员打开详情页即标记已看。博主主页要登录才能看，由 Docker 容器 [xiaohongshu-mcp](https://github.com/xpzouying/xiaohongshu-mcp)（无头浏览器 + 扫码登录的 cookie，`127.0.0.1:18060`）打开主页读 `__INITIAL_STATE__`，日常轮询只拿首屏约 60 条。首次回填（含改起始日期后的重新回填）用本机 Playwright 无头 Chromium 带上容器的登录 cookie（`FK_XHS_COOKIES`）滚动主页，直到笔记早于起始日期，页面会把加载出的笔记累积在 `__INITIAL_STATE__` 里。添加来源贴博主任意一条笔记或主页的分享链接：主页请求必须带该博主的一个有效 `xsec_token`，每次轮询后换成最新笔记的 token。发布时间取笔记 ID 前 8 位十六进制（Unix 时间戳）。单条笔记的分享页不登录也能解析（手机 UA）。
 - RSS：只取 feed 自带条目；正文优先用 feed 全文，否则 trafilatura 抓网页转 Markdown。
 - 播客：添加 RSS 时，前 10 条里有音频附件就当播客来源（`pod-…`）。单集存标题、时长、封面、节目简介和音频直链（`audio_url`），逐字稿初始为 `n/a`；管理员打开详情页或点“生成总结”时才下载音频做本地语音识别。详情页用 `<audio>` 播放，逐字稿和总结的时间点可跳转。小宇宙没有 RSS，用苹果播客 / 喜马拉雅等平台公开的 feed 地址。
-- 逐字稿：yt-dlp 只下载字幕轨道（`FK_YOUTUBE_SUB_LANGS` / `FK_BILIBILI_SUB_LANGS` 按顺序挑选，YouTube 自动字幕去掉滚动重复），每个平台约 30 秒一条，从新到旧。
+- 逐字稿：yt-dlp 只下载字幕轨道，每个平台约 30 秒一条，从新到旧。YouTube 按 `FK_YOUTUBE_SUB_LANGS` 请求中文和英文，但优先口播的中文（人工字幕，或没有 `tlang` 的自动字幕 / `-orig`），跳过 YouTube 从别的语言译出来的轨道，没有中文原字幕再退回英文原字幕；自动字幕去掉滚动重复。B 站按 `FK_BILIBILI_SUB_LANGS` 的顺序挑选。
   - 429：延后重试 2 次，仍失败按“无字幕”处理。
   - 无字幕：新视频自动排 ASR；回填视频标记 `none`，打开条目或点“转写”才排 ASR。
   - ASR（可选，`FK_ASR_PYTHON`）：下载音频，SenseVoiceSmall 在独立 venv 里按 30 秒分段转写（默认 `cuda:0`、batch 2，串行），失败时若配置了 `FK_ASR_CPU_PYTHON` 回退 CPU。

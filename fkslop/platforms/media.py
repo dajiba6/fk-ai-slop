@@ -72,9 +72,30 @@ def parse_json3(raw):
     return cues
 
 
+_CJK = re.compile(r"[\u3400-\u9fff]")
+# These codes are uploads or original auto-captions. Bare zh-Hans / zh-Hant / yue are also
+# the names YouTube gives a translation, so they only win once metadata says they are not one.
+_ZH_ORIGINAL = {"zh", "zh-cn", "zh-tw", "zh-hk"}
+
+
+def _cjk_extension(previous, text):
+    """Unspaced Chinese auto-captions repeat the previous cue; return only the new tail."""
+    if not previous or not _CJK.search(text):
+        return None
+    if text == previous:
+        return ""
+    if text.startswith(previous):
+        return text[len(previous):].strip()
+    limit = min(len(previous), len(text) - 1)
+    for size in range(limit, 3, -1):
+        if previous[-size:] == text[:size]:
+            return text[size:].strip()
+    return None
+
+
 def dedupe_rolling(cues):
     """YouTube auto captions repeat the previous line inside each cue; keep only the new words."""
-    out, tail = [], []
+    out, tail, previous = [], [], ""
     for cue in cues:
         if cue["end"] - cue["start"] < 0.05:
             continue
@@ -84,11 +105,16 @@ def dedupe_rolling(cues):
             if tail[-size:] == words[:size]:
                 overlap = size
                 break
-        fresh = words[overlap:]
+        if overlap:
+            fresh = " ".join(words[overlap:])
+        else:
+            extended = _cjk_extension(previous, cue["text"])
+            fresh = cue["text"] if extended is None else extended
+        previous = cue["text"]
         if not fresh:
             continue
-        tail = (tail + fresh)[-40:]
-        out.append({"start": cue["start"], "end": cue["end"], "text": " ".join(fresh)})
+        tail = (tail + fresh.split())[-40:]
+        out.append({"start": cue["start"], "end": cue["end"], "text": fresh})
     return out
 
 
@@ -97,26 +123,65 @@ def _track_lang(path: Path):
     return path.name[: -len(path.suffix)].rsplit(".", 1)[-1].lower()
 
 
-def _pick_track(work: Path, langs):
+def _caption_record(info, lang):
+    """(uploaded, track) for this language. An upload wins over an auto caption of the same code."""
+    found = {}
+    for key, uploaded in (("subtitles", True), ("automatic_captions", False)):
+        for code, tracks in (info.get(key) or {}).items():
+            if code.lower() == lang and tracks:
+                if uploaded:
+                    return True, tracks[0]
+                found = tracks[0]
+    return False, found
+
+
+def _translated(track):
+    url = track.get("url") or ""
+    name = (track.get("name") or "").lower()
+    return "tlang=" in url or " from " in name
+
+
+def _youtube_tier(lang, info):
+    """Lower is better. Chinese speech beats English speech; a translation loses to both."""
+    uploaded, track = _caption_record(info, lang)
+    known = bool(track)
+    translated = _translated(track) if known else False
+    chinese = lang.startswith(("zh", "yue", "cmn"))
+    if chinese:
+        if not known:
+            return 1 if lang in _ZH_ORIGINAL or lang.endswith("-orig") else 3
+        if translated:
+            return 3
+        return 0 if uploaded else 1
+    if lang.startswith("en") and not translated:
+        return 2
+    return 3
+
+
+def _pick_track(work: Path, langs, info=None):
     tracks = [p for p in work.iterdir() if p.suffix.lower() in (".vtt", ".srt", ".json3")
               and "danmaku" not in p.name.lower()]
     order = [lang.lower() for lang in langs]
 
     def rank(path):
         lang = _track_lang(path)
-        return (order.index(lang) if lang in order else len(order), path.suffix == ".json3", -path.stat().st_size)
+        tier = _youtube_tier(lang, info) if info is not None else 0
+        pref = order.index(lang) if lang in order else len(order)
+        return (tier, pref, path.suffix == ".json3", -path.stat().st_size)
 
     return min(tracks, key=rank) if tracks else None
 
 
 def fetch_subtitles(url, platform):
-    """The best subtitle track in the configured languages, plus duration / upload date / chapters.
-    Only a few languages are requested: asking for every YouTube translation trips its 429 limit."""
+    """The best subtitle track, plus duration / upload date / chapters.
+    YouTube prefers Chinese speech and skips tracks translated from another language.
+    Only those languages are requested: asking for every translation trips the 429 limit."""
     youtube = platform == "youtube"
     langs = (config.YOUTUBE_SUB_LANGS if youtube else config.BILIBILI_SUB_LANGS).split(",")
     with tempfile.TemporaryDirectory(prefix="fk-subs-") as tmp:
         work = Path(tmp)
         args = [*(youtube_auth_args() if youtube else []), "--no-playlist", "--skip-download",
+                "--ignore-no-formats-error",
                 "--write-auto-sub", "--write-sub", "--sub-langs", ",".join(langs),
                 "--sub-format", "vtt/json3" if youtube else "srt/vtt", "--write-info-json",
                 "-o", str(work / "%(id)s"), url]
@@ -125,18 +190,20 @@ def fetch_subtitles(url, platform):
             output = (result.stderr or "") + (result.stdout or "")
         except subprocess.TimeoutExpired:
             output = "yt-dlp timed out"
-        track = _pick_track(work, langs)
+        info_files = list(work.glob("*.info.json"))
+        info = json.loads(info_files[0].read_text(encoding="utf-8")) if info_files else {}
+        track = _pick_track(work, langs, info if youtube else None)
         if track is None:
             if RATE_LIMIT.search(output):
                 raise RateLimited(output.strip()[-300:])
             raise NoSubtitles(output.strip()[-300:])
         raw = track.read_text(encoding="utf-8")
         cues = parse_json3(raw) if track.suffix == ".json3" else parse_cues(raw)
-        info_files = list(work.glob("*.info.json"))
-        info = json.loads(info_files[0].read_text(encoding="utf-8")) if info_files else {}
-    if youtube:
+        lang = _track_lang(track)
+        uploaded, _ = _caption_record(info, lang)
+    if youtube and not uploaded:
         cues = dedupe_rolling(cues)
-    lang = _track_lang(track).removeprefix("ai-").split("-")[0]
+    lang = lang.removeprefix("ai-").split("-")[0]
     chapters = [{"start_time": c.get("start_time"), "end_time": c.get("end_time"), "title": c.get("title")}
                 for c in info.get("chapters") or []]
     return cues, {"language": lang, "duration": info.get("duration"), "upload_date": info.get("upload_date"),

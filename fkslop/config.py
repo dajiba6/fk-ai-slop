@@ -76,7 +76,13 @@ FFMPEG = _tool("FK_FFMPEG", "ffmpeg")
 NODE = _tool("FK_NODE", "node")
 # yt-dlp --cookies-from-browser value (e.g. "firefox"); YouTube often asks single-video requests to sign in.
 YOUTUBE_COOKIES_BROWSER = _env("FK_YOUTUBE_COOKIES_BROWSER")
-YOUTUBE_SUB_LANGS = _env("FK_YOUTUBE_SUB_LANGS", "en,en-orig,en-en,en-US")
+# Uploaded Chinese and original auto-captions, then English. zh-Hans / zh-Hant are
+# requested too: an upload uses those codes, and a translation with the same code is dropped later.
+YOUTUBE_SUB_LANGS = _env(
+    "FK_YOUTUBE_SUB_LANGS",
+    "zh,zh-Hans,zh-Hant,zh-CN,zh-TW,zh-HK,yue,"
+    "zh-Hans-orig,zh-Hant-orig,zh-CN-orig,zh-TW-orig,zh-HK-orig,zh-orig,yue-orig,"
+    "en-orig,en,en-US")
 BILIBILI_SUB_LANGS = _env("FK_BILIBILI_SUB_LANGS", "ai-zh,zh-Hans,zh-CN,zh,zh-Hant,en")
 BILIBILI_COOKIES = _path("FK_BILIBILI_COOKIES")
 
